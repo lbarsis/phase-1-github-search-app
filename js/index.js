@@ -2,17 +2,74 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.querySelector('#github-form')
   const input = document.querySelector('#search')
   const userList = document.querySelector('#user-list')
-  const reposList = document.querySelector('#repos-list')
-  const githubContainer = document.querySelector('#github-container')
+  const searchRepoButton = document.createElement('button')
 
+  searchRepoButton.textContent = 'Search Repos'
+  searchRepoButton.id = 'toggle-search'
+  form.appendChild(searchRepoButton)
+
+  let searchUsers = true
+
+  // main form that searches GitHub's API for users or repos based on users requirements
   form.addEventListener('submit', e => {
     e.preventDefault()
-    const user = input.value
-    fetch(`https://api.github.com/search/users?q=${user}`)
-    .then(resp => resp.json())
-    .then(getUserName)
+    const inputField = input.value
+    if (searchUsers) {
+      fetch(`https://api.github.com/search/users?q=${inputField}`,
+      {
+        headers: {
+          Accept: 'application/vnd.github.v3+json'
+        }
+      })
+      .then(resp => resp.json())
+      .then(getUserName)
+      .catch(error => {
+        alert(error)
+      })
+    } else {
+      fetch(`https://api.github.com/search/repositories?q=${inputField}`,
+      {
+        headers: {
+          Accept: 'application/vnd.github.v3+json'
+        }
+      })
+      .then(resp => resp.json())
+      .then(getRepositories)
+      .catch(error => {
+        alert(error)
+      })
+    }
 
+    // Toggles between searching Users and Repos
+    searchRepoButton.addEventListener('click',() => {
+      const toggle = document.querySelector('#toggle-search')
+      if (searchUsers) {
+        toggle.textContent = 'Search Users'
+        searchUsers = false
+      } else {
+        toggle.textContent = 'Search Repos'
+        searchUsers = true
+      }
+    })
   })
+
+  function getRepositories(repos) {
+    removeAllChildNodes(userList)
+    const header = document.createElement('h2')
+    header.textContent = `Github repos that contain: ${input.value}`
+    userList.append(header)
+
+    for (let repo of repos.items) {
+      
+      const repoData = document.createElement('li')
+      repoData.classList.add('repo-name')
+      repoData.id = repo.name
+      repoData.textContent = repo.name
+
+      userList.appendChild(repoData)
+    }
+    form.reset()
+  }
 
   function getUserName(users) {
     removeAllChildNodes(userList)
@@ -30,7 +87,12 @@ document.addEventListener('DOMContentLoaded', () => {
       
 
       userData.addEventListener('click', () => {
-        fetch(`https://api.github.com/users/${user.login}/repos`)
+        fetch(`https://api.github.com/users/${user.login}/repos`,
+        {
+          headers: {
+            Accept: 'application/vnd.github.v3+json'
+          }
+        })
         .then(resp => resp.json())
         .then(repos => {
           removeAllChildNodes(userList)
@@ -57,6 +119,5 @@ document.addEventListener('DOMContentLoaded', () => {
     while (parent.firstChild) {
         parent.removeChild(parent.firstChild);
     }
-}
-
+  }
 })
